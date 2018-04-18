@@ -1,0 +1,648 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+#include "graph.h"
+#include "binheap.h"
+
+
+
+
+wrap_t** parsingData(char *filename, int *a)
+{
+	char *str;
+	FILE *fp;
+	int x = -1;
+	int c = 0;
+	int y ,p;
+	int j = 0;
+	int flag = 1;
+	int val;
+	int cityid;
+	int num;
+	int count;
+	char string[MAX];
+	wrap_t **city;
+
+
+
+	fp = fopen(filename,"r");
+
+	if(fp == NULL)
+	{
+		printf("ERROR opening file\n");
+		exit(EXIT_FAILURE);
+	}
+	
+	while(fscanf(fp,"%s",string) == 1)
+	{
+		if(x>-1)
+		{
+			printf("String %2d is << %s >>\n",x,string);
+		}
+		x++;
+
+		if(flag)
+		{
+			val = atoi(string);
+			*a = val;
+			wrap_t **cityarr = (wrap_t**)malloc(sizeof(wrap_t*)*val);
+			city = cityarr;
+			for(y=0;y<val;y++)
+			{
+				city[y]=(wrap_t*)malloc(sizeof(wrap_t));
+				city_t *info = (city_t*)malloc(sizeof(city_t));
+				city[y]->cityinfo = info;
+				int *travelarr = (int*)malloc(sizeof(int)*val);
+				city[y]->travel = travelarr;
+				for(p=0;p<val;p++)
+				{
+					city[y]->travel[p] = -1;
+				}
+			}
+			flag = 0;
+		}else
+		{
+
+			str = strtok(string,"|");
+			cityid = atoi(str);
+			city[c]->cityinfo->ID = cityid;
+
+			str = strtok(NULL,"|");
+			strcpy(city[c]->cityinfo->cityname,str);
+			
+			str = strtok(NULL,"|");
+			strcpy(city[c]->cityinfo->relief,str);
+			
+			str = strtok(NULL,":");
+
+			if(str != NULL)
+			{
+				j=j+1;
+				num = atoi(str);
+			}
+		
+			while(str != NULL)
+			{
+				str = strtok(NULL,",");
+				count = atoi(str);
+				city[c]->travel[num] = count;
+				str = strtok(NULL,":");
+				if(str != NULL)
+				{
+					j=j+1;
+					num = atoi(str);
+				}
+			}
+			city[c]->cityinfo->num_neighbours = j;
+			c++;
+			j=0;
+		}
+	}
+	return city;
+}
+
+
+void printlink(wrap_t **city, int c, int b)
+{
+	int i;
+	int j;
+
+	printf("\nPrinting started\n");
+	printf("------------------------\n");
+	for(i=0;i<b;i++)
+	{
+		for(j=0;j<c;j++)
+		{
+			printf("city[%d}->travel[%d] = %d\n",i,j,city[i]->travel[j]);
+		}
+		printf("------------------------\n");
+	}
+	printf("Printing Complete\n");
+}
+
+
+wrap_t** citylink(wrap_t** city, int c)
+{
+	int i,j,k,l;
+	int b,z;
+	link_t **link;
+	int x = 0;
+	int travelnum;
+
+	for(i=0;i<c;i++)
+	{
+		travelnum = city[i]->cityinfo->num_neighbours;
+		city[i]->cityinfo->next = (link_t**)malloc(sizeof(link_t*)*travelnum);
+		link = city[i]->cityinfo->next;
+		for(l=0;l<travelnum;l++)
+		{
+			link[l]=(link_t*)malloc(sizeof(link_t));
+		}
+
+		for(j=0;j<c;j++)
+		{
+			if(city[i]->travel[j] > -1)
+			{
+				for(k=0;k<c;k++)
+				{
+					if(city[k]->cityinfo->ID == j)
+					{
+						link[x]->citytown = (city_t*)city[k]->cityinfo;
+						link[x]->traveltime = city[i]->travel[j];
+						link[x]->ischecked = 0;
+						x++;
+					}
+				}
+			}
+		}
+		x = 0;
+	}
+	printf("\n");
+	printf("Connection list\n------------------------------------\n");
+	for(b=0;b<c;b++)
+	{
+		if(city[b]->cityinfo->num_neighbours != 0)
+		{
+			printf("%12s",city[b]->cityinfo->cityname);
+			for(z=0;z<city[b]->cityinfo->num_neighbours;z++)
+			{
+				city_t *temp = (city_t*)city[b]->cityinfo->next[z]->citytown;
+				printf(" --> %12s",temp->cityname);
+			}
+			printf("\n");
+		}
+	}
+	printf("-------------------------------------\nEnd of Report\n\n");
+	return city;
+}
+
+
+city_t** unwrapper(wrap_t** city, int c)
+{
+	city_t **town;
+	int i;
+
+	town = (city_t**)malloc(sizeof(city_t*)*c);
+	for(i=0;i<c;i++)
+	{
+		town[i] = city[i]->cityinfo;
+		free(city[i]);
+	}
+	return town;
+}
+
+graph_t* creategraph(city_t** town, int c)
+{
+	graph_t *graph;
+
+	graph = (graph_t*)malloc(sizeof(graph_t));
+	graph->city = town;
+	graph->numcities = c;
+	return graph;
+}
+
+
+int disaster_location(graph_t* graph)
+{
+	int i;
+	int src=0;
+	//char res[MAX];
+	char name[MAX+1];
+
+	printf("Enter City name : ");
+	scanf("%s",name);
+
+	if(strlen(name)>MAX)
+	{
+		fprintf(stderr,"ERROR! Name entered exceeded the number of characters this program can accept.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	for(i=0;i<graph->numcities;i++)
+	{
+		if(strncmp(graph->city[i]->cityname,name,MAX) == 0)
+		{
+			printf("\nDisaster Location :\nCity ID = %d\nCityname = %s\n\n",graph->city[i]->ID,graph->city[i]->cityname);
+			src = graph->city[i]->ID;
+			break;
+		}else if(i == graph->numcities-1)
+		{
+			printf("Error! City doesn't exist!\n");  //might be wrong. check again!
+			exit(EXIT_FAILURE);
+		}
+	}
+	return src;
+}
+
+
+int* dijkstras(graph_t *graph, int src, int *distance)
+{
+	int vertices = graph->numcities;
+	int i,j,k,d,g,v;
+	int length;
+	int *dist;
+	int *parents;
+
+	heap_t* tree = heaptree(vertices);
+
+	tree->array = (heapnode_t**)malloc(sizeof(heapnode_t*)*vertices);
+	tree->position = (int*)malloc(sizeof(int)*vertices);
+	dist = (int*)malloc(sizeof(int)*vertices);
+	parents = (int*)malloc(sizeof(int)*vertices);
+
+	for(i=0;i<vertices;i++)
+	{
+		dist[i] = INT_MAX;
+		tree->array[i] = newheapnode(i,dist[i]);
+		tree->position[i] = i;
+	}
+
+	dist[src] = 0;
+	tree->position[src] = src;
+	decreasekey(tree,src,dist[src]);
+	tree->size = vertices;
+
+	for(g = 0;g<vertices;g++)
+	{
+		parents[g] = INT_MAX;
+	}
+
+	parents[src] = -1;
+	while(!isEmpty(tree))
+	{
+		heapnode_t *minnode = extractmin(tree); 
+		int u = minnode->v;		
+		for(j=0;j<vertices;j++)
+		{
+			if(graph->city[j]->ID == u)		
+			{
+				if(graph->city[j]->num_neighbours != 0)
+				{
+					for(k=0;k<graph->city[j]->num_neighbours;k++)     
+					{
+						length = graph->city[j]->next[k]->traveltime;
+						city_t *neighbours =(city_t*)graph->city[j]->next[k]->citytown;
+						d = neighbours->ID;
+						if(isinheap(tree,d) && dist[u] != INT_MAX && length + dist[u] < dist[d])
+						{
+							dist[d] = dist[u] + length;
+							decreasekey(tree,d,dist[d]);
+							parents[d] = u;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for(v=0;v<vertices;v++)
+	{
+		distance[v] = dist[v];
+	}
+	return parents;
+}
+		
+
+void printtable(int *dist, int vertices)
+{
+	int z;
+
+	printf("--------Table--------\n");
+	for(z=0;z<vertices;z++)
+	{
+		if(dist[z] != INT_MAX)
+		{
+			printf("dist[%02d] = %4d\n",z,dist[z]);
+		}else
+		{
+			printf("dist[%02d] =   -1\n",z);
+		}
+	}
+	printf("\n");
+}
+
+void printpos(int *pos, int vertices)
+{
+	int z;
+
+	printf("--------pos--------\n");
+	for(z=0;z<vertices;z++)
+	{
+		printf("pos[%d] = %d\n",z,pos[z]);
+	}
+	printf("\n");
+}
+
+
+
+
+
+
+
+void debug(char *string)
+{
+	if(DEBUG)
+	{
+		fprintf(stdout,"%s\n",string);
+		fflush(stdout);
+	}
+}
+
+
+graph_t* graphflipper(graph_t* graph)
+{
+	int u = graph->numcities;
+	int i,j,k,a,z,g,v;
+	int code, time1, time2, temp;
+		
+
+	for(i=0;i<u;i++)
+	{
+		z = graph->city[i]->num_neighbours;
+		for(j=0;j<z;j++)
+		{
+			city_t *neighb = (city_t*)graph->city[i]->next[j]->citytown;
+			time1 = graph->city[i]->next[j]->traveltime;
+			code = neighb->ID;
+			for(k=0;k<u;k++)
+			{
+				if(graph->city[k]->ID == code)
+				{
+					if(graph->city[k]->num_neighbours != 0)
+					{
+						for(a=0;a<graph->city[k]->num_neighbours;a++)
+						{	
+							city_t *flip = (city_t*)graph->city[k]->next[a]->citytown;
+							if(graph->city[i]->next[j]->ischecked != 1)
+							{		
+								if(flip->ID == graph->city[i]->ID && graph->city[k]->next[a]->ischecked != 1)
+								{
+									time2 = graph->city[k]->next[a]->traveltime;
+									temp = time2;
+									time2 = time1;
+									time1 = temp;
+									graph->city[i]->next[j]->traveltime = time1;
+									graph->city[k]->next[a]->traveltime = time2;
+									graph->city[k]->next[a]->ischecked = 1;
+									graph->city[i]->next[j]->ischecked = 1;
+									break;
+								}
+								if(a == graph->city[k]->num_neighbours - 1)
+								{	
+									graph->city[k]->num_neighbours = graph->city[k]->num_neighbours + 1; 
+									link_t **exchange = (link_t**)malloc(sizeof(link_t*)*(graph->city[k]->num_neighbours));
+									for(v=0;v<graph->city[k]->num_neighbours;v++)
+									{
+										exchange[v] = (link_t*)malloc(sizeof(link_t));
+									}
+									for(g=0;g<graph->city[k]->num_neighbours-1;g++)
+									{
+										exchange[g] = graph->city[k]->next[g];
+									}
+									
+									int h = graph->city[k]->num_neighbours-1;
+									exchange[h]->citytown =(city_t*)graph->city[i];
+									graph->city[k]->next = exchange;
+									graph->city[k]->next[h]->traveltime = time1;
+									
+									graph->city[i]->next[j]->traveltime = INT_MAX;
+									graph->city[i]->next[j]->ischecked = 1;
+									graph->city[k]->next[h]->ischecked = 1;
+									break;
+								}
+							}
+						}
+					}else
+					{
+						graph->city[k]->num_neighbours = graph->city[k]->num_neighbours + 1;
+						link_t **replace = (link_t**)malloc(sizeof(link_t*));
+						replace[0] = (link_t*)malloc(sizeof(link_t));
+						replace[0]->citytown = (city_t*)graph->city[i];
+						graph->city[k]->next = replace;
+						graph->city[k]->next[0]->traveltime = time1;
+					
+						graph->city[i]->next[j]->traveltime = INT_MAX;
+						graph->city[i]->next[j]->ischecked = 1;
+						graph->city[k]->next[0]->ischecked = 1;
+						break;
+					}
+				}
+			}
+		}
+	}	
+	return graph;
+}
+
+
+void printflipped(graph_t* graph)
+{	
+	int a,b;
+	int c = graph->numcities;
+
+	for(a =0 ;a<c;a++)
+	{
+		int z=graph->city[a]->num_neighbours;
+		for(b=0; b<z;b++)
+		{
+			city_t *ggg = (city_t*)graph->city[a]->next[b]->citytown;
+			printf("City %2d is connected",graph->city[a]->ID);
+			printf(" to city with ID %2d with traveltime",ggg->ID);
+			printf(" %2d and",graph->city[a]->next[b]->traveltime);
+			printf(" ischecked = %d\n",graph->city[a]->next[b]->ischecked);
+		}
+	}
+}
+
+graph_t* neutralise(graph_t* graph)
+{
+	int a,b,c,z;
+	int x = 0;
+
+	c=graph->numcities;
+
+	for(a=0;a<c;a++)
+	{
+		z=graph->city[a]->num_neighbours;
+		link_t **reallocate_array = (link_t**)malloc(sizeof(link_t)*z);
+		for(b=0;b<z;b++)
+		{
+			if(graph->city[a]->next[b]->traveltime < INT_MAX)
+			{
+				reallocate_array[x] = (link_t*)malloc(sizeof(link_t));
+				reallocate_array[x] = graph->city[a]->next[b];
+				x++;
+			}
+		}
+		free(graph->city[a]->next);
+		graph->city[a]->next = reallocate_array;
+		graph->city[a]->num_neighbours = x;
+		x=0;
+	}
+	return graph;
+}
+
+
+void findsupply(graph_t *graph, int parents[],int dist[])
+{
+
+	char supply[MAX];
+	int len;
+	int a,k;
+
+	menu();
+	scanf("%s",supply);
+
+	len = strlen(supply);
+
+	printf("Finding closes cities with %s....\n\n",supply);
+
+	for(a=0;a<len;a++)
+	{
+		k=supply[a];
+		if(k != 'X')
+		{
+			retrieve(graph,k,parents,dist);
+		}else
+		{
+			retrieve(graph,'B',parents,dist);
+			retrieve(graph,'F',parents,dist);
+			retrieve(graph,'W',parents,dist);
+			retrieve(graph,'D',parents,dist);
+			retrieve(graph,'M',parents,dist);
+		}
+	}
+}
+
+
+int checksupply(char a)
+{
+	char supply[5];
+	supply[0] = 'B';
+	supply[1] = 'F';
+	supply[2] = 'M';
+	supply[3] = 'D';
+	supply[4] = 'W';
+	int flag = 0;
+	int i;
+
+
+	for(i=0;i<5;i++)
+	{
+		if(a == supply[i])
+		{
+			flag = 1;
+		}
+	}
+
+	if(flag == 1)
+	{
+		return 1;
+	}else
+	{
+		return 0;
+	}
+}
+
+
+void retrieve(graph_t *graph,char supply, int parents[], int dist[])
+{
+	int i,j,k,x;
+	int y = INT_MAX;
+	char name[MAX];
+
+	for(i=0;i<graph->numcities;i++)
+	{
+		x = strlen(graph->city[i]->relief);
+		for(j=0;j<x;j++)
+		{
+			if(graph->city[i]->relief[j] == supply)
+			{
+				if(dist[graph->city[i]->ID] < y)
+				{
+					k = graph->city[i]->ID;
+					y = dist[k];
+					strcpy(name,graph->city[i]->cityname);
+					break;
+				}
+			}
+		}
+	}
+
+	if(y != 0 && y != INT_MAX)
+	{
+		printf("\n%c",supply);
+		printf("%5d %10s",k,name);
+		printf("%5d hrs\n",y);
+		printf("		%d    %s\n",k,name);
+		trackpath(graph,parents,k,supply);
+	}else
+	{
+		printf("WARNING! - ");
+		printf("Supply %c can't be delivered\n",supply);
+	}
+	printf("\n");
+}
+	
+void trackpath(graph_t *graph, int parents[], int id, char supply)
+{
+
+	int i,j;
+	int hours,travelhours=0,path;
+	int cityid = id;
+	//char name[MAX];
+
+	path = parents[cityid];
+
+	while(path != -1 && path != INT_MAX)
+	{
+		for(i=0;i<graph->numcities;i++)
+		{
+			if(graph->city[i]->ID == path)
+			{
+				printf("		%d    %s\n",path,graph->city[i]->cityname);
+				for(j=0;j<graph->city[i]->num_neighbours;j++)
+				{
+					city_t* temp = (city_t*)graph->city[i]->next[j]->citytown;
+					hours = graph->city[i]->next[j]->traveltime;
+					if(temp->ID == cityid)
+					{
+						travelhours = travelhours + hours;
+						path = parents[path];
+						cityid = graph->city[i]->ID;
+					}
+				}
+			}
+		}
+	}
+	printf("\n");
+}
+
+
+void menu()
+{
+	printf("List of Available Supplies\n--------------------------\n");
+	printf(" B - Blanket\n");
+	printf(" F - Food\n");
+	printf(" W - Water\n");
+	printf(" D - Digging Equipment\n");
+	printf(" M - Medicine\n--------------------------\n");
+	printf("What supplies do you need?\n");
+}
+
+
+
+int* initialisedist(int *dist, int c)
+{
+	dist = (int*)malloc(sizeof(int)*c);
+	return dist;
+}
+
+
+
+
+
+
+
+
+

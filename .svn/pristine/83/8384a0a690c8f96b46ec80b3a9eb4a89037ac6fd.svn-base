@@ -1,0 +1,32 @@
+#include <stdbool.h>
+
+struct minheapnode
+{
+	int v;
+	int distance;
+};
+
+typedef struct minheapnode heapnode_t;
+
+
+struct minheaptree
+{
+	int numberheaps;
+	int size;
+	int *position;
+	heapnode_t **array;
+};
+
+typedef struct minheaptree heap_t;
+
+
+
+int isEmpty(heap_t* tree);
+heap_t* heaptree(int numnode);
+heapnode_t* newheapnode(int v, int dist);
+heapnode_t* extractmin(heap_t* tree);
+bool isinheap(heap_t *tree, int d);
+void heapify(heap_t* tree, int i);
+void printarr(heap_t* tree, int vertices);
+void swapnode(heapnode_t **a, heapnode_t **b);
+void decreasekey(heap_t* tree, int src, int dist);

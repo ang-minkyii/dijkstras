@@ -1,0 +1,50 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "graph.h"
+
+
+
+int main(int argc, char **argv)
+{
+ 	int c;
+ 	char filename[MAX+1];
+	int src;
+	wrap_t **state;
+	city_t **curr;
+	graph_t *graph;
+	int *dist;
+
+	if(argc != 2)
+	{
+		printf("Usage: helpme [insert file]\n");
+		exit(EXIT_FAILURE);
+	}
+
+	strncpy(filename,argv[1],MAX);
+	printf("FILENAME : %s\n",filename);
+	state = parsingData(filename,&c);
+	//printlink(state,c,c);
+	state = citylink(state,c);
+	curr = unwrapper(state,c);
+	graph = creategraph(curr,c);
+	src = disaster_location(graph);
+	graph = graphflipper(graph);
+	graph = neutralise(graph);
+	dist = dijkstras(graph,src);
+	//printflipped(graph);
+	printtable(dist,c);
+	findsupply(graph,dist);
+
+
+	return 0;
+}
+
+
+
+
+
+
+
+

@@ -1,0 +1,66 @@
+#define MAX 256
+#define DEBUG 1
+#define DELIM ",:|"
+#define SUPPLIES "BFWDM"
+
+
+
+struct linknode
+{
+	int traveltime;
+	void *citytown;
+	int ischecked;
+};
+
+typedef struct linknode link_t;
+
+
+struct ajdlistnode
+{
+	int ID;
+	char cityname[MAX];
+	char relief[MAX];
+	link_t **next;
+	int num_neighbours;
+};
+
+typedef struct ajdlistnode city_t;
+
+struct tempnode
+{
+	city_t *cityinfo;
+	int *travel;
+};
+
+typedef struct tempnode wrap_t;
+
+struct graphnode
+{
+	city_t **city;
+	int numcities;
+};
+
+typedef struct graphnode graph_t;
+
+
+
+
+wrap_t** parsingData(char *filename, int *a);
+void printlink(wrap_t **city, int c, int b);
+wrap_t** citylink(wrap_t** city, int c);
+int disaster_location(graph_t* graph);
+city_t** unwrapper(wrap_t** city, int c);
+graph_t* creategraph(city_t** town, int c);
+int* dijkstras(graph_t *graph, int src);
+void debug(char *string);
+void printtable(int *dist, int vertices);
+void printpos(int *pos, int vertices);
+graph_t* graphflipper(graph_t* graph);
+void printflipped(graph_t* graph);
+graph_t* neutralise(graph_t* graph);
+void findsupply(graph_t *graph, int dist[]);
+void menu();
+
+
+
+

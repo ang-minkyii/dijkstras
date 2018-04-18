@@ -1,0 +1,5 @@
+
+061|Australia|Vic:03,NSW:02,04:mobile,08:WA
+063|Philippines|Manila:02,Cebu:32,Davao:82,
+001|USA|Nj:201,Maine:207,NewYorkCity:212,415:SanFrancisco,307:wyoming
+

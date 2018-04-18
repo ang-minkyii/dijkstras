@@ -1,0 +1,122 @@
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "binheap.h"
+
+heapnode_t* newheapnode(int v, int dist)
+{
+	heapnode_t* newnode = (heapnode_t*)malloc(sizeof(heapnode_t));
+	newnode->v = v;
+	newnode->distance = dist;
+
+	return newnode;
+}
+
+heap_t* heaptree(int numnode)
+{
+	heap_t *tree = (heap_t*)malloc(sizeof(heap_t));
+	tree->numberheaps = numnode;
+	tree->array = (heapnode_t**)malloc(sizeof(heapnode_t)*numnode);
+
+	return tree;
+}
+
+
+void heapify(heap_t* tree, int i)
+{
+	int smallest,left,right;
+	smallest = i;
+	left = 2*i + 1;
+	right = 2*i + 2;
+
+	if(left < tree->size && tree->array[left]->distance < tree->array[smallest]->distance)
+	{
+		smallest = left;
+	}
+
+	if(right < tree->size && tree->array[right]->distance < tree->array[smallest]->distance)
+	{
+		smallest = right;
+	}
+
+	if(smallest != i)
+	{
+		heapnode_t *smallestnode = tree->array[smallest];
+		heapnode_t *inode = tree->array[i];
+
+		tree->position[smallestnode->v] = i;
+		tree->position[inode->v] = smallest;
+
+		swapnode(&tree->array[smallest],&tree->array[i]);
+		heapify(tree,smallest);
+	}
+}
+
+bool isinheap(heap_t *tree, int d)
+{
+	if(tree->position[d] < tree->size)
+	{
+		return true;
+	}
+	return false;
+}
+
+heapnode_t* extractmin(heap_t* tree)
+{
+	if(isEmpty(tree))
+	{	
+		return NULL;
+	}
+
+	heapnode_t* root = tree->array[0];
+	heapnode_t* lastnode = tree->array[tree->size - 1];
+
+	tree->array[0] = lastnode;
+	tree->position[root->v] = tree->size-1;
+	tree->position[lastnode->v] = 0;
+	tree->size = tree->size - 1;
+	heapify(tree,0);
+
+	return root;
+}
+
+
+
+void decreasekey(heap_t* tree, int src, int dist)
+{
+	int i = tree->position[src];
+
+	tree->array[i]->distance = dist;
+
+	while(i && tree->array[i]->distance < tree->array[(i-1)/2]->distance)
+	{
+		tree->position[tree->array[i]->v] = (i-1)/2;
+		tree->position[tree->array[(i-1)/2]->v] = i;
+		swapnode(&tree->array[i],&tree->array[(i-1)/2]);
+		i=(i-1)/2;
+	}
+}
+
+int isEmpty(heap_t* tree)
+{
+	return tree->size==0;
+}
+
+
+void swapnode(heapnode_t **a, heapnode_t **b)
+{
+	heapnode_t *tmp;
+	tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
+
+
+void printarr(heap_t* tree, int vertices)
+{
+	for(int i=0;i<vertices;i++)
+	{
+		printf("tree->array[%d]->v = %d\n",i,tree->array[i]->v);
+	}
+	printf("\n");
+}

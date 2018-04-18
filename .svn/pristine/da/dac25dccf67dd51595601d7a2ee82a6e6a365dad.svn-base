@@ -1,0 +1,267 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "helpme.h"
+
+
+
+int main(int argc, char **argv)
+{
+ 	int c;
+ 	int i,j;
+	char filename[MAX];
+	char name[MAX];
+	wrap_t **state;
+	city_t **curr;
+	graph_t *graph;
+
+	if(argc != 2)
+	{
+		printf("Usage: helpme [insert file]\n");
+		exit(EXIT_FAILURE);
+	}
+
+	strcpy(filename,argv[1]);
+	printf("FILENAME : %s\n",filename);
+	state = parsingData(filename,&c);
+	printgraph(state,c,c);
+	state = citylink(state,c);
+	curr = unwrapper(state,c);
+	graph = creategraph(curr,c);
+	graph = shortestpath(graph);
+
+	return 0;
+}
+
+
+wrap_t** parsingData(char *filename, int *a)
+{
+	char *str;
+	FILE *fp;
+	int x = -1;
+	int i = 3;
+	int c = 0;
+	int y ,p;
+	int j = 0;
+	int flag = 1;
+	int val;
+	int cityid;
+	int num;
+	int count;
+	char string[MAX];
+	wrap_t **city;
+
+
+
+	fp = fopen(filename,"r");
+
+	if(fp == NULL)
+	{
+		printf("ERROR opening file\n");
+		exit(EXIT_FAILURE);
+	}
+	
+	while(fscanf(fp,"%s",string) == 1)
+	{
+		if(x>-1)
+		{
+			printf("String %d is << %s >>\n",x,string);
+		}
+		x++;
+
+		if(flag)
+		{
+			val = atoi(string);
+			*a = val;
+			wrap_t **cityarr = (wrap_t**)malloc(sizeof(wrap_t*)*val);
+			city = cityarr;
+			for(y=0;y<val;y++)
+			{
+				city[y]=(wrap_t*)malloc(sizeof(wrap_t));
+				city_t *info = (city_t*)malloc(sizeof(city_t));
+				city[y]->cityinfo = info;
+				int *travelarr = (int*)malloc(sizeof(int)*val);
+				city[y]->travel = travelarr;
+				for(p=0;p<val;p++)
+				{
+					city[y]->travel[p] = -1;
+				}
+			}
+			flag = 0;
+		}else
+		{
+
+			str = strtok(string,"|");
+			cityid = atoi(str);
+			city[c]->cityinfo->ID = cityid;
+
+			str = strtok(NULL,"|");
+			strcpy(city[c]->cityinfo->cityname,str);
+			
+			str = strtok(NULL,"|");
+			strcpy(city[c]->cityinfo->relief,str);
+			
+			str = strtok(NULL,":");
+
+			if(str != NULL)
+			{
+				j=j+1;
+				num = atoi(str);
+			}
+		
+			while(str != NULL)
+			{
+				str = strtok(NULL,",");
+				count = atoi(str);
+				city[c]->travel[num] = count;
+				str = strtok(NULL,":");
+				if(str != NULL)
+				{
+					j=j+1;
+					num = atoi(str);
+				}
+			}
+			city[c]->cityinfo->num_neighbours = j;
+			c++;
+			j=0;
+		}
+	}
+	return city;
+}
+
+
+void printgraph(wrap_t **city, int c, int b)
+{
+	int i;
+	int j;
+
+	printf("\nPrinting started\n");
+	printf("------------------------\n");
+	for(i=0;i<b;i++)
+	{
+		for(j=0;j<c;j++)
+		{
+			printf("city[%d}->travel[%d] = %d\n",i,j,city[i]->travel[j]);
+		}
+		printf("------------------------\n");
+	}
+	printf("\nPrinting Complete\n");
+}
+
+
+wrap_t** citylink(wrap_t** city, int c)
+{
+	int i,j,k,l,a;
+	int b,z;
+	link_t **link;
+	int x = 0;
+	int travelnum;
+
+	for(i=0;i<c;i++)
+	{
+		travelnum = city[i]->cityinfo->num_neighbours;
+		city[i]->cityinfo->next = (link_t**)malloc(sizeof(link_t*)*travelnum);
+		link = city[i]->cityinfo->next;
+		for(l=0;l<travelnum;l++)
+		{
+			link[l]=(link_t*)malloc(sizeof(link_t));
+		}
+
+		for(j=0;j<c;j++)
+		{
+			if(city[i]->travel[j] > -1)
+			{
+				for(k=0;k<c;k++)
+				{
+					if(city[k]->cityinfo->ID == j)
+					{
+						link[x]->citytown = (city_t*)city[k]->cityinfo;
+						link[x]->traveltime = city[i]->travel[j];
+						x++;
+					}
+				}
+			}
+		}
+		x = 0;
+	}
+	printf("\n");
+
+	for(b=0;b<c;b++)
+	{
+		printf("%s is connected to ",city[b]->cityinfo->cityname);
+		for(z=0;z<city[b]->cityinfo->num_neighbours;z++)
+		{
+			city_t *temp = (city_t*)city[b]->cityinfo->next[z]->citytown;
+			printf("%s ",temp->cityname);
+		}
+		printf("\n\n");
+	}
+	return city;
+}
+
+
+city_t** unwrapper(wrap_t** city, int c)
+{
+	city_t **state;
+	int i;
+
+	state = (city_t**)malloc(sizeof(city_t*)*c);
+	for(i=0;i<c;i++)
+	{
+		state[i] = city[i]->cityinfo;
+		free(city[i]);
+	}
+	return state;
+}
+
+graph_t* creategraph(city_t** town, int c)
+{
+	int i,j;
+	graph_t *graph;
+
+	graph = (graph_t*)malloc(sizeof(graph_t));
+	graph->city = town;
+	graph->numcities = c;
+	return graph;
+}
+
+
+graph_t* shortestpath(graph_t* graph)
+{
+	int i;
+	int src;
+	char res[MAX];
+	char name[MAX];
+
+	printf("Enter City name : ");
+	scanf("%s",name);
+
+	for(i=0;i<graph->numcities;i++)
+	{
+		if(strcmp(graph->city[i]->cityname,name) == 0)
+		{
+			printf("\nDisaster Location :\nCity ID = %d\nCityname = %s\n",graph->city[i]->ID,graph->city[i]->cityname);
+			src = graph->city[i]->ID;
+			break;
+		}else if(i == graph->numcities-1)
+		{
+			printf("Error! City doesn't exist!\n");  //might be wrong. check again!
+			exit(EXIT_FAILURE);
+		}
+		
+	}
+
+	printf("What resources do you need?\n");
+	scanf("%s",res);
+	printf("\nInformation\n---------------\n");
+	printf("Location: %d %s\n",src,name);
+	printf("Relief needed: %s\n---------------\n",res);
+
+
+
+
+	return graph;
+
+}
+
+

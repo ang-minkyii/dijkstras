@@ -1,0 +1,41 @@
+
+
+#define MAX 256
+#define DEBUG 1
+#define DELIM ",:|"
+
+
+
+struct linknode
+{
+	int traveltime;
+	void *citytown;
+};
+
+typedef struct linknode link_t;
+
+
+struct ajdlistnode
+{
+	int ID;
+	char cityname[MAX];
+	char relief[MAX];
+	link_t **next;
+};
+
+typedef struct ajdlistnode node_t;
+
+struct tempnode
+{
+	node_t *cityinfo;
+	int *travel;
+};
+
+typedef struct tempnode city_t;
+
+
+city_t** parsingData(char *filename, int *a);
+void printgraph(city_t **city, int c, int b);
+city_t** citylink(city_t** city, int c);
+
+

@@ -1,0 +1,6 @@
+5
+0|Melbourne|B|2:20
+1|Sydney|F|3:10,4:30
+2|Brisbane|W|0:15
+3|Adelaide|D|1:18,0:12
+4|Perth|M|
